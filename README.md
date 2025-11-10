@@ -1,6 +1,6 @@
-# Fever Forecaster Hub
+# Fever_Oracle
 
-Fever Forecaster Hub is a web application designed to help healthcare professionals monitor patients, assess their risk of fever, and manage alerts. It provides a centralized dashboard to visualize patient data and track potential health issues.
+Fever_Oracle is a web application designed to help healthcare professionals monitor patients, assess their risk of fever, and manage alerts. It provides a centralized dashboard to visualize patient data and track potential health issues.
 
 ## Features
 
@@ -66,7 +66,7 @@ To get a local copy up and running, follow these simple steps.
    ```
 2. Navigate to the project directory
    ```sh
-   cd fever-forecaster-hub
+   cd Fever_Oracle
    ```
 3. Install NPM packages
    ```sh
