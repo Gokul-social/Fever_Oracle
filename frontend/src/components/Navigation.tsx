@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, TrendingUp, Bell, LogOut, LayoutDashboard } from "lucide-react";
+import { Activity, TrendingUp, Bell, LogOut, LayoutDashboard, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,7 +17,8 @@ const Navigation = () => {
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/patient-risk", label: "Patient Risk", icon: TrendingUp },
-    { path: "/alerts", label: "Alerts", icon: Bell }
+    { path: "/alerts", label: "Alerts", icon: Bell },
+    { path: "/kafka-monitor", label: "Kafka Monitor", icon: Database }
   ];
 
   return (

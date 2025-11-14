@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import PatientRisk from "./pages/PatientRisk";
 import Alerts from "./pages/Alerts";
+import KafkaMonitorPage from "./pages/KafkaMonitor";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -66,6 +67,18 @@ const App = () => {
                       <DashboardLayout>
                         <ErrorBoundary>
                           <Alerts />
+                        </ErrorBoundary>
+                      </DashboardLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/kafka-monitor"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardLayout>
+                        <ErrorBoundary>
+                          <KafkaMonitorPage />
                         </ErrorBoundary>
                       </DashboardLayout>
                     </ProtectedRoute>

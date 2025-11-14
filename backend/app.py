@@ -11,12 +11,14 @@ import os
 from pathlib import Path
 from blockchain_service import blockchain_bp
 from models.blockchain import blockchain
+from kafka_service import kafka_bp
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for frontend
 
-# Register blockchain blueprint
+# Register blueprints
 app.register_blueprint(blockchain_bp)
+app.register_blueprint(kafka_bp)
 
 # Data paths
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -213,6 +215,62 @@ def get_dashboard_metrics():
             "atRiskPatients": 142,
             "lastUpdated": datetime.now().isoformat()
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/model/predict', methods=['POST'])
+def model_predict():
+    """Run model prediction on latest Kafka data"""
+    try:
+        data = request.get_json() or {}
+        
+        # Simulate model processing
+        # In production, this would call your actual ML model
+        wastewater_data = data.get('wastewater', [])
+        pharmacy_data = data.get('pharmacy', [])
+        
+        # Simple prediction logic (replace with actual model)
+        avg_viral_load = 0
+        if wastewater_data:
+            avg_viral_load = sum(d.get('viral_load', 0) for d in wastewater_data) / len(wastewater_data)
+        
+        avg_sales = 0
+        if pharmacy_data:
+            avg_sales = sum(d.get('sales_index', 0) for d in pharmacy_data) / len(pharmacy_data)
+        
+        # Calculate risk score based on data
+        viral_load_factor = min(100, (avg_viral_load / 70) * 50) if avg_viral_load > 0 else 25
+        sales_factor = min(100, (avg_sales / 100) * 50) if avg_sales > 0 else 25
+        
+        risk_score = min(100, viral_load_factor + sales_factor)
+        
+        prediction = {
+            'risk_level': 'high' if risk_score > 70 else 'medium' if risk_score > 40 else 'low',
+            'risk_score': round(risk_score, 2),
+            'confidence': 85,
+            'factors': {
+                'wastewater_trend': 'increasing' if avg_viral_load > 60 else 'stable' if avg_viral_load > 0 else 'no_data',
+                'pharmacy_trend': 'increasing' if avg_sales > 80 else 'stable' if avg_sales > 0 else 'no_data'
+            },
+            'timestamp': datetime.now().isoformat(),
+            'data_points': {
+                'wastewater_samples': len(wastewater_data),
+                'pharmacy_samples': len(pharmacy_data),
+                'avg_viral_load': round(avg_viral_load, 2),
+                'avg_sales_index': round(avg_sales, 2)
+            }
+        }
+        
+        # Log to blockchain
+        blockchain.add_audit_log(
+            event_type='model_prediction',
+            user_id='system',
+            action='predict_outbreak',
+            resource='model/predict',
+            metadata=prediction
+        )
+        
+        return jsonify(prediction)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
