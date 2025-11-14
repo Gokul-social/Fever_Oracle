@@ -1,8 +1,9 @@
-import { Activity, AlertTriangle, TrendingUp, Users, BarChart3, LineChart, MapPin } from "lucide-react";
+import { Activity, AlertTriangle, TrendingUp, Users, BarChart3, LineChart, MapPin, Shield, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, Line, LineChart as RechartsLineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from "recharts";
+import { useEffect, useState } from "react";
 import { 
   outbreakPredictions, 
   regionalOutbreakData, 
@@ -13,8 +14,18 @@ import {
   modelMetrics,
   forecastAccuracy
 } from "@/lib/mockData";
+import { blockchainClient, BlockchainInfo } from "@/lib/blockchain";
 
 const Dashboard = () => {
+  const [blockchainInfo, setBlockchainInfo] = useState<BlockchainInfo | null>(null);
+
+  useEffect(() => {
+    // Fetch blockchain info
+    blockchainClient.getBlockchainInfo()
+      .then(setBlockchainInfo)
+      .catch(console.error);
+  }, []);
+
   const metrics = [
     {
       title: "Outbreak Risk",
@@ -95,9 +106,20 @@ const Dashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Clinical Intelligence Dashboard</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Real-time outbreak prediction and patient risk monitoring</p>
           </div>
-          <Badge variant="outline" className="text-xs sm:text-sm">
-            Last updated: 5 min ago
-          </Badge>
+          <div className="flex items-center gap-2">
+            {blockchainInfo && (
+              <Badge variant="outline" className="text-xs sm:text-sm flex items-center gap-1.5">
+                <Link2 className="h-3 w-3" />
+                <span>Blockchain: {blockchainInfo.chain_length} blocks</span>
+                {blockchainInfo.is_valid && (
+                  <Shield className="h-3 w-3 text-green-500" />
+                )}
+              </Badge>
+            )}
+            <Badge variant="outline" className="text-xs sm:text-sm">
+              Last updated: 5 min ago
+            </Badge>
+          </div>
         </div>
 
         {/* Metrics Grid */}

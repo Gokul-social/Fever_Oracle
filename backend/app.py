@@ -9,9 +9,14 @@ from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
+from blockchain_service import blockchain_bp
+from models.blockchain import blockchain
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
+
+# Register blockchain blueprint
+app.register_blueprint(blockchain_bp)
 
 # Data paths
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -19,10 +24,16 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    blockchain_info = blockchain.get_chain_info()
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "blockchain": {
+            "enabled": True,
+            "chain_length": blockchain_info['chain_length'],
+            "is_valid": blockchain_info['is_valid']
+        }
     })
 
 @app.route('/api/patients', methods=['GET'])
@@ -50,6 +61,16 @@ def get_patients():
 def get_patient(patient_id):
     """Get specific patient by ID"""
     try:
+        # Log access to blockchain
+        user_id = request.headers.get('X-User-ID', 'anonymous')
+        blockchain.add_audit_log(
+            event_type='data_access',
+            user_id=user_id,
+            action='view_patient',
+            resource=f'patient/{patient_id}',
+            metadata={'patient_id': patient_id}
+        )
+        
         patients_file = DATA_DIR / "patients_demo.jsonl"
         if not patients_file.exists():
             return jsonify({"error": "Patients data not found"}), 404

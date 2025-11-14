@@ -7,6 +7,7 @@ Fever Oracle is a comprehensive healthcare monitoring system that uses machine l
 - **Dashboard**: Real-time overview of outbreak predictions, patient status, and system metrics
 - **Patient Risk Assessment**: ML-based individualized risk assessment using digital twin models
 - **Alerts**: Cross-institutional federated learning and early warning system
+- **Blockchain Security**: Immutable audit logging, data integrity verification, and zero-knowledge proofs
 - **Wastewater Monitoring**: Integration with wastewater viral load data
 - **Pharmacy Data**: OTC medication sales trend analysis
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
@@ -53,6 +54,8 @@ fever-oracle/
 - **Flask**: Python web framework
 - **Flask-CORS**: Cross-origin resource sharing
 - **Python 3.11+**: Programming language
+- **Blockchain**: Immutable audit logging and data integrity
+- **Cryptography**: Enhanced security and privacy features
 
 ### Infrastructure
 - **Docker**: Containerization
@@ -125,6 +128,14 @@ fever-oracle/
 - `GET /api/outbreak/predictions?days=14` - Outbreak predictions
 - `GET /api/alerts?severity=high` - System alerts
 - `GET /api/dashboard/metrics` - Dashboard metrics
+
+### Blockchain & Security
+- `GET /api/blockchain/info` - Blockchain information and status
+- `POST /api/blockchain/audit` - Add audit log entry
+- `GET /api/blockchain/audit-trail` - Get audit trail
+- `GET /api/blockchain/verify` - Verify blockchain integrity
+- `POST /api/blockchain/data-hash` - Store data integrity hash
+- `POST /api/blockchain/zk-proof` - Create zero-knowledge proof
 
 ## Data Files
 

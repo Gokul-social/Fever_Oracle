@@ -325,13 +325,28 @@ const Alerts = () => {
                   <Shield className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h4 className="text-sm font-semibold text-foreground mb-1">
-                      Privacy-Preserving Federated Learning
+                      Blockchain-Enhanced Privacy & Security
                     </h4>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mb-3">
                       All cross-institutional alerts are generated using federated learning with differential
                       privacy techniques. No patient data is centralized or shared between institutions.
-                      HIPAA/GDPR compliant with encrypted communications and audit logging.
+                      HIPAA/GDPR compliant with encrypted communications and blockchain-based immutable audit logging.
                     </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge variant="outline" className="text-xs">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Blockchain Audit Trail
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Zero-Knowledge Proofs
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Data Integrity Verification
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Immutable Logging
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </CardContent>
