@@ -240,8 +240,7 @@ const Alerts = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={70}
-                        label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                        labelLine={{ strokeWidth: 1 }}
+                        label={false}
                       >
                         {sourceDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -269,19 +268,25 @@ const Alerts = () => {
                     </PieChart>
                   </ChartContainer>
                   {/* Legend */}
-                  <div className="mt-4 space-y-2">
-                    {sourceDistribution.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="text-muted-foreground">{item.name}</span>
+                  <div className="mt-4 space-y-2.5">
+                    {sourceDistribution.map((item, index) => {
+                      const percentage = ((item.value / alertStats.total) * 100).toFixed(0);
+                      return (
+                        <div key={index} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <div 
+                              className="w-3.5 h-3.5 rounded-full flex-shrink-0" 
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="text-foreground font-medium">{item.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{item.value} alert{item.value !== 1 ? 's' : ''}</span>
+                            <span className="text-foreground font-semibold">({percentage}%)</span>
+                          </div>
                         </div>
-                        <span className="font-medium text-foreground">{item.value}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
