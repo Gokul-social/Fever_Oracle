@@ -48,6 +48,54 @@ services:
     networks:
       - fever-oracle-network
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: fever-oracle-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - fever-oracle-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: fever-oracle-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - fever-oracle-network
+
+  kafka-producer:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.kafka
+    container_name: fever-oracle-kafka-producer
+    depends_on:
+      - kafka
+      - backend
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app
+    networks:
+      - fever-oracle-network
+    command: python kafka_data_producer.py
+
 networks:
   fever-oracle-network:
     driver: bridge

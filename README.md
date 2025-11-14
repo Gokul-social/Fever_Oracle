@@ -11,32 +11,44 @@ Fever Oracle is a comprehensive healthcare monitoring system that uses machine l
 - **Wastewater Monitoring**: Integration with wastewater viral load data
 - **Pharmacy Data**: OTC medication sales trend analysis
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Secure Authentication**: Login system with credential validation
 
 ## Architecture
 
 ```
 fever-oracle/
-├── backend/              # Flask REST API
-│   ├── app.py           # Main Flask application
-│   ├── models/          # Data models
-│   └── requirements.txt # Python dependencies
-├── frontend/            # React + TypeScript frontend
-│   ├── src/            # Source code
-│   ├── package.json    # Node dependencies
-│   └── vite.config.ts  # Vite configuration
-├── data/               # Data files
+├── backend/                    # Flask REST API
+│   ├── app.py                 # Main Flask application
+│   ├── blockchain_service.py  # Blockchain API endpoints
+│   ├── models/                # Data models
+│   │   ├── blockchain.py      # Blockchain implementation
+│   │   ├── patient.py         # Patient data model
+│   │   └── outbreak.py        # Outbreak prediction model
+│   └── requirements.txt       # Python dependencies
+├── frontend/                  # React + TypeScript frontend
+│   ├── src/                  # Source code
+│   │   ├── lib/
+│   │   │   ├── blockchain.ts # Blockchain API client
+│   │   │   └── api.ts        # General API client
+│   │   ├── pages/            # Page components
+│   │   └── components/       # UI components
+│   ├── package.json          # Node dependencies
+│   └── vite.config.ts        # Vite configuration
+├── data/                     # Data files
 │   ├── wastewater_demo.csv
 │   ├── otc_demo.csv
 │   └── patients_demo.jsonl
-├── models/             # ML models
-│   ├── outbreak/       # Outbreak prediction models
-│   └── twin/          # Patient digital twin models
-├── scripts/            # Utility scripts
+├── models/                   # ML models
+│   ├── outbreak/            # Outbreak prediction models
+│   └── twin/                # Patient digital twin models
+├── scripts/                  # Utility scripts
+│   ├── kafka_data_producer.py  # Kafka data producer
+│   ├── kafka_data_consumer.py  # Kafka data consumer
 │   ├── ingest_wastewater.py
 │   └── generate_synthetic_vitals.py
-├── docs/              # Documentation
+├── docs/                     # Documentation
 │   └── architecture.md
-└── docker-compose.yml # Docker orchestration
+└── docker-compose.yml        # Docker orchestration
 ```
 
 ## Technologies Used
@@ -56,11 +68,14 @@ fever-oracle/
 - **Python 3.11+**: Programming language
 - **Blockchain**: Immutable audit logging and data integrity
 - **Cryptography**: Enhanced security and privacy features
+- **Kafka-Python**: Apache Kafka client library for data streaming
 
 ### Infrastructure
 - **Docker**: Containerization
 - **Docker Compose**: Multi-container orchestration
 - **PostgreSQL**: Database (optional)
+- **Apache Kafka**: Real-time data streaming pipeline
+- **Zookeeper**: Kafka coordination service
 
 ## Getting Started
 
@@ -100,6 +115,13 @@ fever-oracle/
    ```bash
    docker-compose up -d
    ```
+   This starts:
+   - Backend API (port 5000)
+   - Frontend (port 8080)
+   - PostgreSQL (port 5432)
+   - Zookeeper (port 2181)
+   - Kafka (port 9092)
+   - Kafka Producer (generates realistic data automatically)
 
 2. **View logs**
    ```bash
@@ -110,6 +132,72 @@ fever-oracle/
    ```bash
    docker-compose down
    ```
+
+## Kafka Data Pipeline
+
+The system uses Apache Kafka for real-time data generation and streaming. The Kafka pipeline generates realistic raw data for all mock data sources.
+
+### Kafka Topics
+
+- **`fever-oracle-wastewater`**: Wastewater viral load data with temporal patterns
+- **`fever-oracle-pharmacy`**: Pharmacy OTC sales data with day-of-week effects
+- **`fever-oracle-patients`**: Patient records with realistic demographics
+- **`fever-oracle-vitals`**: Patient vital signs with correlated measurements
+- **`fever-oracle-alerts`**: System alerts based on thresholds
+- **`fever-oracle-outbreak`**: Outbreak predictions with confidence scores
+
+### Data Generation Features
+
+The Kafka producer generates realistic data with:
+
+- **Temporal Patterns**: Morning/evening peaks, weekday/weekend variations
+- **Correlated Data**: Fever affects heart rate, symptoms affect risk scores
+- **Realistic Distributions**: Age-based comorbidities, region-based variations
+- **Event-Based**: Random fever spikes, alert generation based on thresholds
+- **Time-of-Day Effects**: Higher pharmacy sales in afternoon/evening
+- **Seasonal Factors**: Weekly patterns in wastewater data
+
+### Running Kafka Producers
+
+**Using Docker (Automatic):**
+The Kafka producer runs automatically when you start Docker Compose.
+
+**Manual Setup:**
+```bash
+# Install dependencies
+pip install kafka-python pandas numpy
+
+# Run all producers
+python scripts/kafka_data_producer.py
+
+# Run specific producer
+python scripts/kafka_data_producer.py --topic wastewater --interval 60
+
+# With custom Kafka server
+python scripts/kafka_data_producer.py --bootstrap-servers localhost:9092
+```
+
+### Running Kafka Consumers
+
+```bash
+# Consume and save data to files
+python scripts/kafka_data_consumer.py
+```
+
+This will create/update data files in the `data/` directory:
+- `wastewater_demo.csv`
+- `otc_demo.csv`
+- `patients_demo.jsonl`
+- `patient_vitals.jsonl`
+- `alerts_demo.jsonl`
+- `outbreak_predictions.jsonl`
+
+### Kafka Configuration
+
+Kafka is configured in `docker-compose.yml`:
+- **Bootstrap Server**: `localhost:9092` (external), `kafka:9093` (internal)
+- **Auto-create Topics**: Enabled
+- **Replication Factor**: 1 (for development)
 
 ## API Endpoints
 
@@ -130,12 +218,12 @@ fever-oracle/
 - `GET /api/dashboard/metrics` - Dashboard metrics
 
 ### Blockchain & Security
-- `GET /api/blockchain/info` - Blockchain information and status
-- `POST /api/blockchain/audit` - Add audit log entry
-- `GET /api/blockchain/audit-trail` - Get audit trail
+- `GET /api/blockchain/info` - Get blockchain information and status
+- `POST /api/blockchain/audit` - Add audit log entry to blockchain
+- `GET /api/blockchain/audit-trail` - Retrieve audit trail (optional: filter by user_id or resource)
 - `GET /api/blockchain/verify` - Verify blockchain integrity
-- `POST /api/blockchain/data-hash` - Store data integrity hash
-- `POST /api/blockchain/zk-proof` - Create zero-knowledge proof
+- `POST /api/blockchain/data-hash` - Store data integrity hash on blockchain
+- `POST /api/blockchain/zk-proof` - Create zero-knowledge proof for privacy-preserving verification
 
 ## Data Files
 
@@ -186,18 +274,25 @@ npm test
 ## Project Structure
 
 - **backend/**: Flask REST API server
-  - `app.py`: Main application file
+  - `app.py`: Main application file with blockchain integration
+  - `blockchain_service.py`: Blockchain API endpoints
   - `models/`: Data models and schemas
+    - `blockchain.py`: Blockchain implementation (nodes, chain, privacy features)
+    - `patient.py`: Patient data model
+    - `outbreak.py`: Outbreak prediction model
 - **frontend/**: React frontend application
-  - `src/pages/`: Page components
+  - `src/pages/`: Page components (Dashboard, Alerts, Patient Risk, Login)
   - `src/components/`: Reusable UI components
-  - `src/lib/`: Utility functions and mock data
+  - `src/lib/`: Utility functions and API clients
+    - `blockchain.ts`: Blockchain API client
+    - `api.ts`: General API client
+    - `mockData.ts`: Mock data for development
 - **models/**: Machine learning models
   - `outbreak/`: Outbreak prediction models
   - `twin/`: Patient digital twin models
 - **scripts/**: Utility and data processing scripts
 - **data/**: Demo and sample data files
-- **docs/**: Documentation
+- **docs/**: Documentation including architecture details
 
 ## Environment Variables
 
@@ -223,6 +318,123 @@ VITE_API_URL=http://localhost:5000
 ## License
 
 This project is licensed under the MIT License.
+
+## Blockchain Technology
+
+Fever Oracle integrates blockchain technology to provide enhanced data security, privacy, and compliance capabilities.
+
+### Key Blockchain Features
+
+#### 1. Immutable Audit Logging
+- All data access and modifications are automatically logged to the blockchain
+- Creates an unalterable audit trail that meets HIPAA/GDPR compliance requirements
+- Every patient data access is recorded with timestamp, user ID, and action details
+- Audit logs cannot be modified or deleted, ensuring complete transparency
+
+#### 2. Data Integrity Verification
+- Data hashes are stored on the blockchain to verify data hasn't been tampered with
+- Enables verification of data authenticity at any point in time
+- Protects against unauthorized data modifications
+- Supports compliance audits and regulatory requirements
+
+#### 3. Zero-Knowledge Proofs
+- Privacy-preserving verification without exposing sensitive patient data
+- Allows verification of data properties without revealing the actual data
+- Enables secure cross-institutional collaboration
+- Maintains patient privacy while ensuring data integrity
+
+#### 4. Proof of Work Consensus
+- Blocks are mined using configurable difficulty levels
+- Ensures blockchain security through computational work
+- Prevents tampering and maintains chain integrity
+- Configurable mining difficulty for different security requirements
+
+### Blockchain Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Application Layer               │
+│  (Patient Data, Alerts, Predictions)   │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│         Blockchain Layer                │
+│  ┌──────────────────────────────────┐  │
+│  │  Audit Logging                   │  │
+│  │  - Data Access Logs              │  │
+│  │  - User Actions                  │  │
+│  │  - System Events                 │  │
+│  └──────────────────────────────────┘  │
+│  ┌──────────────────────────────────┐  │
+│  │  Data Integrity                  │  │
+│  │  - Hash Storage                  │  │
+│  │  - Verification                  │  │
+│  │  - Tamper Detection              │  │
+│  └──────────────────────────────────┘  │
+│  ┌──────────────────────────────────┐  │
+│  │  Privacy Features                │  │
+│  │  - Zero-Knowledge Proofs         │  │
+│  │  - Encrypted Audit Logs          │  │
+│  │  - Privacy-Preserving Operations │  │
+│  └──────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+```
+
+### Blockchain Benefits
+
+1. **Compliance**: Meets HIPAA and GDPR requirements for audit logging
+2. **Security**: Immutable records prevent unauthorized modifications
+3. **Transparency**: Complete audit trail for all data operations
+4. **Privacy**: Zero-knowledge proofs enable verification without data exposure
+5. **Trust**: Decentralized architecture eliminates single points of failure
+6. **Integrity**: Cryptographic verification ensures data authenticity
+
+### Using Blockchain Features
+
+#### View Blockchain Status
+```bash
+curl http://localhost:5000/api/blockchain/info
+```
+
+#### Add Audit Log
+```bash
+curl -X POST http://localhost:5000/api/blockchain/audit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event_type": "data_access",
+    "user_id": "dijo-10101",
+    "action": "view_patient",
+    "resource": "patient/PT-2847",
+    "metadata": {}
+  }'
+```
+
+#### Get Audit Trail
+```bash
+# Get all audit logs
+curl http://localhost:5000/api/blockchain/audit-trail
+
+# Filter by user
+curl http://localhost:5000/api/blockchain/audit-trail?user_id=dijo-10101
+
+# Filter by resource
+curl http://localhost:5000/api/blockchain/audit-trail?resource=patient/PT-2847
+```
+
+#### Verify Blockchain Integrity
+```bash
+curl http://localhost:5000/api/blockchain/verify
+```
+
+### Security & Privacy
+
+- **End-to-End Encryption**: All sensitive data is encrypted in transit and at rest
+- **Blockchain Audit Trail**: Immutable logging of all data access
+- **Zero-Knowledge Proofs**: Privacy-preserving data verification
+- **Access Control**: Role-based access with blockchain-verified permissions
+- **Data Integrity**: Cryptographic hashing ensures data hasn't been tampered with
+- **Compliance**: HIPAA/GDPR compliant architecture with audit logging
 
 ## Support
 
