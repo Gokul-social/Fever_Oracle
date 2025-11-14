@@ -141,10 +141,86 @@ const PatientRisk = () => {
         </div>
       )}
 
-      {/* Last Update */}
-      <div className="flex items-center justify-between pt-2 border-t">
-      <span className="text-xs text-muted-foreground">Last updated</span>
-      <span className="text-xs text-muted-foreground">{patient.lastUpdate}</span>
+      {/* Body Temperature Trend Graph */}
+      <div className="pt-4 border-t">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Thermometer className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Body Temperature Trend (14 days)</span>
+          </div>
+          <span className="text-xs text-muted-foreground">Last updated: {patient.lastUpdate}</span>
+        </div>
+        <ChartContainer 
+          config={{
+            temperature: { 
+              label: "Temperature (°C)", 
+              color: patient.lastTemperature >= 38.0 ? "hsl(var(--destructive))" : patient.lastTemperature >= 37.5 ? "hsl(var(--warning))" : "hsl(var(--chart-1))" 
+            },
+            normal: {
+              label: "Normal Range",
+              color: "hsl(var(--muted-foreground))"
+            }
+          }} 
+          className="h-[120px]"
+        >
+          <RechartsLineChart data={patient.temperatureTrend || []}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={(value) => {
+                const date = new Date(value);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+              }}
+              className="text-[10px]"
+              tick={{ fontSize: 10 }}
+            />
+            <YAxis 
+              domain={[35.5, 39.5]} 
+              className="text-[10px]"
+              tick={{ fontSize: 10 }}
+              label={{ value: '°C', angle: -90, position: 'insideLeft', style: { fontSize: 10 } }}
+            />
+            <ChartTooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-card border rounded-lg p-2 shadow-lg">
+                      <p className="text-xs font-medium">{new Date(payload[0].payload.date).toLocaleDateString()}</p>
+                      <p className="text-xs text-foreground">
+                        {payload[0].value}°C
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              stroke={patient.lastTemperature >= 38.0 ? "hsl(var(--destructive))" : patient.lastTemperature >= 37.5 ? "hsl(var(--warning))" : "hsl(var(--chart-1))"}
+              strokeWidth={2}
+              dot={{ r: 2, fill: patient.lastTemperature >= 38.0 ? "hsl(var(--destructive))" : patient.lastTemperature >= 37.5 ? "hsl(var(--warning))" : "hsl(var(--chart-1))" }}
+              activeDot={{ r: 4 }}
+            />
+            {/* Normal temperature range reference line */}
+            <Line 
+              type="monotone" 
+              dataKey={() => 37.5} 
+              stroke="hsl(var(--muted-foreground))" 
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              dot={false}
+              strokeOpacity={0.5}
+            />
+          </RechartsLineChart>
+        </ChartContainer>
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <span>Range: 35.5°C - 39.5°C</span>
+          <span className={patient.lastTemperature >= 38.0 ? 'text-destructive font-medium' : patient.lastTemperature >= 37.5 ? 'text-warning font-medium' : ''}>
+            Current: {patient.lastTemperature}°C
+          </span>
+        </div>
       </div>
       </CardContent>
       </Card>

@@ -25,6 +25,7 @@ export interface PatientRiskData {
   comorbidities: string[];
   lastTemperature: number;
   symptoms: string[];
+  temperatureTrend: TimeSeriesData[];
 }
 
 export interface AlertData {
@@ -54,6 +55,37 @@ export const generateTimeSeries = (days: number = 30, baseValue: number = 50, va
     data.push({
       date: date.toISOString().split('T')[0],
       value: Math.round(value * 10) / 10,
+    });
+  }
+  
+  return data;
+};
+
+// Generate temperature trend data
+export const generateTemperatureTrend = (days: number = 14, baseTemp: number = 36.5, currentTemp: number): TimeSeriesData[] => {
+  const data: TimeSeriesData[] = [];
+  const today = new Date();
+  
+  // Calculate trend from base to current temperature
+  const tempDiff = currentTemp - baseTemp;
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    
+    // Create a trend that gradually moves from base to current temp
+    const progress = (days - 1 - i) / (days - 1);
+    const trendValue = baseTemp + (tempDiff * progress);
+    
+    // Add some realistic variation
+    const variation = (Math.random() - 0.5) * 0.3;
+    const randomSpike = Math.random() < 0.1 ? (Math.random() * 0.5) : 0; // Occasional small spikes
+    
+    const temperature = Math.max(35.0, Math.min(40.0, trendValue + variation + randomSpike));
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      value: Math.round(temperature * 10) / 10,
     });
   }
   
@@ -99,6 +131,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 38.5,
     symptoms: ["Fever", "Fatigue", "Cough"],
     trend: generateTimeSeries(14, 65, 15),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 38.5),
   },
   {
     id: "PT-2901",
@@ -112,6 +145,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 37.8,
     symptoms: ["Fever", "Headache"],
     trend: generateTimeSeries(14, 45, 12),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 37.8),
   },
   {
     id: "PT-2745",
@@ -125,6 +159,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 36.8,
     symptoms: [],
     trend: generateTimeSeries(14, 25, 8),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 36.8),
   },
   {
     id: "PT-2923",
@@ -138,6 +173,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 38.2,
     symptoms: ["Fever", "Shortness of breath", "Cough"],
     trend: generateTimeSeries(14, 60, 18),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 38.2),
   },
   {
     id: "PT-2956",
@@ -151,6 +187,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 36.9,
     symptoms: [],
     trend: generateTimeSeries(14, 35, 10),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 36.9),
   },
   {
     id: "PT-2987",
@@ -164,6 +201,7 @@ export const patientRiskData: PatientRiskData[] = [
     lastTemperature: 37.6,
     symptoms: ["Fever", "Fatigue"],
     trend: generateTimeSeries(14, 55, 14),
+    temperatureTrend: generateTemperatureTrend(14, 36.5, 37.6),
   },
 ];
 
