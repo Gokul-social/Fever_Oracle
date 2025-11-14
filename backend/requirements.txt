@@ -10,4 +10,5 @@ cryptography==41.0.7
 pycryptodome==3.19.0
 kafka-python==2.0.2
 confluent-kafka==2.3.0
+# Note: kafka-python and confluent-kafka are optional - system works with mock data if not installed
 
