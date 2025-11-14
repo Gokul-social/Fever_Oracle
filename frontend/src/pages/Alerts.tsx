@@ -242,7 +242,8 @@ const Alerts = () => {
                         outerRadius={70}
                         label={({ cx, cy, midAngle, innerRadius, outerRadius, name, value }) => {
                           const RADIAN = Math.PI / 180;
-                          const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
+                          // Position label outside the pie
+                          const radius = outerRadius + 20;
                           const x = cx + radius * Math.cos(-midAngle * RADIAN);
                           const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -253,20 +254,20 @@ const Alerts = () => {
                             <text
                               x={x}
                               y={y}
-                              fill="white"
+                              fill="currentColor"
                               textAnchor={textAnchor}
                               dominantBaseline="middle"
-                              className="text-[11px] font-semibold pointer-events-none"
-                              style={{ 
-                                textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 0 1px rgba(0,0,0,0.5)',
-                                fontWeight: 600
-                              }}
+                              className="text-xs font-medium fill-foreground pointer-events-none"
                             >
                               {`${name}: ${value}`}
                             </text>
                           );
                         }}
-                        labelLine={false}
+                        labelLine={{
+                          stroke: 'currentColor',
+                          strokeWidth: 1,
+                          strokeOpacity: 0.6,
+                        }}
                       >
                         {sourceDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
