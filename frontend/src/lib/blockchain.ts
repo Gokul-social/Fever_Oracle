@@ -44,11 +44,17 @@ class BlockchainClient {
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status} ${response.statusText}`);
       }
 
       return await response.json();
     } catch (error) {
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error(`Blockchain API request failed: Network error - ${endpoint}`, error);
+        throw new Error('Network error: Unable to connect to blockchain service. Please check if the backend is running.');
+      }
       console.error(`Blockchain API request failed: ${endpoint}`, error);
       throw error;
     }

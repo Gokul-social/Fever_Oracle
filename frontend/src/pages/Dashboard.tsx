@@ -27,14 +27,18 @@ const Dashboard = () => {
   const fetchBlockchainInfo = useCallback(async () => {
     try {
       setError(null);
+      setIsLoading(true);
       const info = await blockchainClient.getBlockchainInfo();
       setBlockchainInfo(info);
+      setIsLoading(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch blockchain info";
       setError(errorMessage);
       console.error("Error fetching blockchain info:", err);
-      toast.error("Failed to load blockchain status");
-    } finally {
+      // Only show toast for non-network errors (network errors are expected if backend is down)
+      if (!errorMessage.includes('Network error')) {
+        toast.error("Failed to load blockchain status");
+      }
       setIsLoading(false);
     }
   }, []);
@@ -151,8 +155,8 @@ const Dashboard = () => {
               </Badge>
             )}
             {error && (
-              <Badge variant="destructive" className="text-xs sm:text-sm">
-                Blockchain: Offline
+              <Badge variant="destructive" className="text-xs sm:text-sm" title={error}>
+                Blockchain: {error.includes('Network error') ? 'Offline' : 'Error'}
               </Badge>
             )}
             <Badge variant="outline" className="text-xs sm:text-sm">

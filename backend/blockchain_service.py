@@ -12,9 +12,15 @@ blockchain_bp = Blueprint('blockchain', __name__)
 def get_blockchain_info():
     """Get blockchain information"""
     try:
+        # Ensure blockchain is initialized
+        if not blockchain.chain:
+            blockchain.chain = [blockchain.create_genesis_block()]
+        
         info = blockchain.get_chain_info()
         return jsonify(info)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @blockchain_bp.route('/api/blockchain/audit', methods=['POST'])

@@ -13,7 +13,7 @@ from blockchain_service import blockchain_bp
 from models.blockchain import blockchain
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for frontend
 
 # Register blockchain blueprint
 app.register_blueprint(blockchain_bp)

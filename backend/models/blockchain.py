@@ -15,8 +15,8 @@ class BlockchainNode:
         self.timestamp = datetime.now().isoformat()
         self.data = data
         self.previous_hash = previous_hash
+        self.nonce = 0  # Initialize nonce before calculating hash
         self.hash = self.calculate_hash()
-        self.nonce = 0
     
     def calculate_hash(self) -> str:
         """Calculate SHA-256 hash of the block"""
