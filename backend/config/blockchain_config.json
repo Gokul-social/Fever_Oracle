@@ -1,0 +1,17 @@
+{
+  "difficulty": 2,
+  "mining_enabled": true,
+  "auto_verify": true,
+  "audit_retention_days": 365,
+  "privacy_features": {
+    "zk_proofs_enabled": true,
+    "encryption_enabled": true,
+    "data_hashing_enabled": true
+  },
+  "performance": {
+    "cache_size": 1000,
+    "batch_size": 10,
+    "async_processing": true
+  }
+}
+

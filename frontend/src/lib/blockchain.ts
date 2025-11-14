@@ -43,9 +43,25 @@ class BlockchainClient {
         },
       });
 
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        // Check if it's HTML (error page)
+        if (text.trim().startsWith('<!')) {
+          throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
+        }
+        throw new Error(`Invalid response format. Expected JSON, got: ${contentType}`);
+      }
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error: ${response.status} ${response.statusText}`);
+        // Try to parse error as JSON
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `API error: ${response.status} ${response.statusText}`);
+        } catch (parseError) {
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
       }
 
       return await response.json();

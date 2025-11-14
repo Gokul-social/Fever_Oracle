@@ -33,6 +33,13 @@ export const RealtimeDataStream = () => {
         }
         const data = await response.json();
         
+        // Handle error messages in response
+        if (data.error) {
+          setError(data.message || data.error);
+          setIsActive(false);
+          return;
+        }
+        
         // Add new messages to the stream
         const newMessages: StreamMessage[] = [];
         Object.entries(data.data || {}).forEach(([topic, values]: [string, any]) => {
@@ -107,8 +114,9 @@ export const RealtimeDataStream = () => {
             <span className="text-sm">{error}</span>
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-sm text-muted-foreground text-center py-8">
-            No messages received yet. Make sure Kafka producer is running.
+          <div className="text-sm text-muted-foreground text-center py-8 space-y-2">
+            <p>No messages received yet.</p>
+            <p className="text-xs">Make sure Kafka producer is running and generating data.</p>
           </div>
         ) : (
           <div className="space-y-2 max-h-96 overflow-y-auto">

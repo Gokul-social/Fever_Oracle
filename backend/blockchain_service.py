@@ -15,13 +15,18 @@ def get_blockchain_info():
         # Ensure blockchain is initialized
         if not blockchain.chain:
             blockchain.chain = [blockchain.create_genesis_block()]
+            blockchain._cache_valid = False  # Reset cache
         
         info = blockchain.get_chain_info()
         return jsonify(info)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e),
+            "chain_length": len(blockchain.chain) if blockchain.chain else 0,
+            "is_valid": False
+        }), 500
 
 @blockchain_bp.route('/api/blockchain/audit', methods=['POST'])
 def add_audit_log():

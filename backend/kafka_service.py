@@ -3,18 +3,51 @@ Kafka service for monitoring and real-time data access
 """
 
 from flask import Blueprint, jsonify, request
-from kafka import KafkaConsumer
-from kafka.errors import KafkaError
+from functools import lru_cache
 import json
 import threading
 from datetime import datetime, timedelta
 from collections import defaultdict
 import os
+from pathlib import Path
+
+# Try to import Kafka, but handle gracefully if not available
+try:
+    from kafka import KafkaConsumer
+    from kafka.errors import KafkaError
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+    print("Warning: kafka-python not installed. Kafka features will be limited.")
 
 kafka_bp = Blueprint('kafka', __name__)
 
 # Kafka configuration
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+
+# Load Kafka topics configuration
+CONFIG_DIR = Path(__file__).parent / "config"
+KAFKA_CONFIG_FILE = CONFIG_DIR / "kafka_topics.json"
+
+@lru_cache(maxsize=1)
+def load_kafka_config():
+    """Load Kafka topics configuration"""
+    try:
+        if KAFKA_CONFIG_FILE.exists():
+            with open(KAFKA_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Warning: Could not load Kafka config: {e}")
+    return {
+        "topics": [
+            {"name": "fever-oracle-wastewater"},
+            {"name": "fever-oracle-pharmacy"},
+            {"name": "fever-oracle-patients"},
+            {"name": "fever-oracle-vitals"},
+            {"name": "fever-oracle-alerts"},
+            {"name": "fever-oracle-outbreak"}
+        ]
+    }
 
 # In-memory stats (in production, use Redis or similar)
 kafka_stats = {
@@ -58,6 +91,10 @@ def calculate_throughput():
 
 def start_kafka_monitor():
     """Start monitoring Kafka topics"""
+    if not KAFKA_AVAILABLE:
+        print("Warning: Kafka not available, monitor not started")
+        return
+    
     try:
         consumer = KafkaConsumer(
             bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
@@ -65,17 +102,22 @@ def start_kafka_monitor():
             auto_offset_reset='latest',
             enable_auto_commit=True,
             group_id='fever-oracle-monitor',
-            consumer_timeout_ms=1000
+            consumer_timeout_ms=1000,
+            api_version=(0, 10, 1)
         )
         
-        topics = [
-            'fever-oracle-wastewater',
-            'fever-oracle-pharmacy',
-            'fever-oracle-patients',
-            'fever-oracle-vitals',
-            'fever-oracle-alerts',
-            'fever-oracle-outbreak'
-        ]
+        config = load_kafka_config()
+        topics = [topic['name'] for topic in config.get('topics', [])]
+        
+        if not topics:
+            topics = [
+                'fever-oracle-wastewater',
+                'fever-oracle-pharmacy',
+                'fever-oracle-patients',
+                'fever-oracle-vitals',
+                'fever-oracle-alerts',
+                'fever-oracle-outbreak'
+            ]
         
         consumer.subscribe(topics)
         
@@ -98,7 +140,10 @@ def start_kafka_monitor():
             except Exception as e:
                 print(f"Error in Kafka monitor: {e}")
             finally:
-                consumer.close()
+                try:
+                    consumer.close()
+                except:
+                    pass
         
         thread = threading.Thread(target=consume, daemon=True)
         thread.start()
@@ -111,7 +156,23 @@ def get_kafka_stats():
     """Get Kafka statistics"""
     try:
         calculate_throughput()
-        # Return empty stats if no topics have been seen yet
+        
+        # Get default topics from config
+        config = load_kafka_config()
+        default_topics = [topic['name'] for topic in config.get('topics', [])]
+        
+        if not default_topics:
+            default_topics = [
+                'fever-oracle-wastewater',
+                'fever-oracle-pharmacy',
+                'fever-oracle-patients',
+                'fever-oracle-vitals',
+                'fever-oracle-alerts',
+                'fever-oracle-outbreak'
+            ]
+        
+        # Build topics list with stats
+        topics_dict = {name: kafka_stats['topics'][name] for name in default_topics}
         topics_list = [
             {
                 'name': name,
@@ -119,33 +180,50 @@ def get_kafka_stats():
                 'total_messages': stats['total_messages'],
                 'status': stats['status']
             }
-            for name, stats in kafka_stats['topics'].items()
+            for name, stats in topics_dict.items()
         ]
         
-        # If no topics, return default structure
-        if not topics_list:
-            topics_list = [
-                {'name': 'fever-oracle-wastewater', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-                {'name': 'fever-oracle-pharmacy', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-                {'name': 'fever-oracle-patients', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-                {'name': 'fever-oracle-vitals', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-                {'name': 'fever-oracle-alerts', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-                {'name': 'fever-oracle-outbreak', 'messages_per_minute': 0, 'total_messages': 0, 'status': 'idle'},
-            ]
+        # Ensure all default topics are included
+        existing_names = {t['name'] for t in topics_list}
+        for topic_name in default_topics:
+            if topic_name not in existing_names:
+                topics_list.append({
+                    'name': topic_name,
+                    'messages_per_minute': 0,
+                    'total_messages': 0,
+                    'status': 'idle'
+                })
         
         return jsonify({
             'topics': topics_list,
             'total_throughput': kafka_stats['total_throughput'],
-            'consumer_lag': kafka_stats['consumer_lag']
+            'consumer_lag': kafka_stats['consumer_lag'],
+            'kafka_available': KAFKA_AVAILABLE,
+            'bootstrap_servers': KAFKA_BOOTSTRAP_SERVERS
         })
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": str(e),
+            "topics": [],
+            "total_throughput": 0,
+            "consumer_lag": 0,
+            "kafka_available": KAFKA_AVAILABLE
+        }), 500
 
 @kafka_bp.route('/api/kafka/latest-data', methods=['GET'])
 def get_latest_kafka_data():
     """Get latest data from Kafka topics"""
+    if not KAFKA_AVAILABLE:
+        return jsonify({
+            'data': {},
+            'count': 0,
+            'timestamp': datetime.now().isoformat(),
+            'error': 'Kafka library not available',
+            'message': 'kafka-python is not installed. Please install it: pip install kafka-python'
+        }), 503
+    
     try:
         consumer = None
         try:
@@ -190,14 +268,24 @@ def get_latest_kafka_data():
                 # Timeout is expected when no new messages
                 pass
         except KafkaError as e:
-            # Kafka connection error - return empty data
+            # Kafka connection error - return empty data with error info
             return jsonify({
                 'data': {},
                 'count': 0,
                 'timestamp': datetime.now().isoformat(),
                 'error': f'Kafka connection error: {str(e)}',
-                'message': 'Kafka may not be running. Please start Kafka and the producer.'
+                'message': 'Kafka may not be running. Please start Kafka and the producer.',
+                'kafka_available': True,
+                'bootstrap_servers': KAFKA_BOOTSTRAP_SERVERS
             })
+        except Exception as e:
+            return jsonify({
+                'data': {},
+                'count': 0,
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e),
+                'message': 'Failed to connect to Kafka'
+            }), 500
         finally:
             if consumer:
                 try:
@@ -208,12 +296,19 @@ def get_latest_kafka_data():
         return jsonify({
             'data': latest_data,
             'count': message_count,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'kafka_available': True
         })
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e), "message": "Failed to fetch Kafka data"}), 500
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to fetch Kafka data",
+            "data": {},
+            "count": 0,
+            "timestamp": datetime.now().isoformat()
+        }), 500
 
 # Start monitoring when module is imported
 try:

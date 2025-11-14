@@ -9,12 +9,36 @@ from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
+from functools import wraps
 from blockchain_service import blockchain_bp
 from models.blockchain import blockchain
 from kafka_service import kafka_bp
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for frontend
+
+# Add JSON error handler
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"error": "Endpoint not found"}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"error": "Internal server error"}), 500
+
+# Ensure JSON responses
+@app.after_request
+def after_request(response):
+    # Ensure all API responses are JSON
+    if request.path.startswith('/api/') and response.content_type and 'application/json' not in response.content_type:
+        if response.status_code >= 400:
+            try:
+                data = json.loads(response.get_data())
+                response.data = json.dumps(data)
+                response.content_type = 'application/json'
+            except:
+                pass
+    return response
 
 # Register blueprints
 app.register_blueprint(blockchain_bp)
@@ -26,17 +50,30 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    blockchain_info = blockchain.get_chain_info()
-    return jsonify({
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "blockchain": {
-            "enabled": True,
-            "chain_length": blockchain_info['chain_length'],
-            "is_valid": blockchain_info['is_valid']
-        }
-    })
+    try:
+        blockchain_info = blockchain.get_chain_info()
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "blockchain": {
+                "enabled": True,
+                "chain_length": blockchain_info.get('chain_length', 0),
+                "is_valid": blockchain_info.get('is_valid', False)
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "degraded",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "error": str(e),
+            "blockchain": {
+                "enabled": False,
+                "chain_length": 0,
+                "is_valid": False
+            }
+        }), 200  # Return 200 but with degraded status
 
 @app.route('/api/patients', methods=['GET'])
 def get_patients():

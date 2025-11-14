@@ -7,6 +7,9 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import hashlib
 import json
+from functools import lru_cache
+from pathlib import Path
+import os
 
 class BlockchainNode:
     """Represents a single block in the blockchain"""
@@ -53,6 +56,9 @@ class Blockchain:
         self.chain: List[BlockchainNode] = [self.create_genesis_block()]
         self.difficulty = difficulty
         self.pending_transactions: List[Dict] = []
+        self._cache_valid = False  # Cache for chain validity (start as False to force initial verify)
+        self._last_verify_time = None
+        self._cached_length = 0  # Track chain length for cache invalidation
     
     def create_genesis_block(self) -> BlockchainNode:
         """Create the first block in the chain"""
@@ -72,6 +78,8 @@ class Blockchain:
         new_block = BlockchainNode(data, previous_hash)
         new_block.mine_block(self.difficulty)
         self.chain.append(new_block)
+        # Invalidate cache when chain changes
+        self._cache_valid = False
         return new_block
     
     def add_audit_log(self, event_type: str, user_id: str, action: str, 
@@ -99,21 +107,46 @@ class Blockchain:
         }
         return self.add_block(integrity_data)
     
-    def verify_chain(self) -> bool:
-        """Verify the integrity of the blockchain"""
-        for i in range(1, len(self.chain)):
-            current_block = self.chain[i]
-            previous_block = self.chain[i - 1]
-            
-            # Verify current block hash
-            if current_block.hash != current_block.calculate_hash():
-                return False
-            
-            # Verify previous hash link
-            if current_block.previous_hash != previous_block.hash:
-                return False
+    def verify_chain(self, use_cache: bool = True) -> bool:
+        """Verify the integrity of the blockchain with caching for performance"""
+        # Store current chain length for cache invalidation
+        current_length = len(self.chain)
         
-        return True
+        # Use cache if chain hasn't changed and cache is valid
+        if use_cache and self._cache_valid and self._last_verify_time:
+            # Check if chain length changed (simple cache invalidation)
+            if hasattr(self, '_cached_length') and self._cached_length == current_length:
+                return True
+        
+        try:
+            # Verify genesis block
+            if len(self.chain) == 0:
+                return False
+            
+            # Verify all blocks
+            for i in range(1, len(self.chain)):
+                current_block = self.chain[i]
+                previous_block = self.chain[i - 1]
+                
+                # Verify current block hash
+                if current_block.hash != current_block.calculate_hash():
+                    self._cache_valid = False
+                    return False
+                
+                # Verify previous hash link
+                if current_block.previous_hash != previous_block.hash:
+                    self._cache_valid = False
+                    return False
+            
+            # Cache is valid
+            self._cache_valid = True
+            self._last_verify_time = datetime.now()
+            self._cached_length = current_length
+            return True
+        except Exception as e:
+            print(f"Error verifying chain: {e}")
+            self._cache_valid = False
+            return False
     
     def get_audit_trail(self, user_id: Optional[str] = None, 
                        resource: Optional[str] = None) -> List[Dict]:
@@ -129,12 +162,16 @@ class Blockchain:
         return audit_logs
     
     def get_chain_info(self) -> Dict:
-        """Get blockchain information"""
+        """Get blockchain information with optimized verification"""
+        # Use cached verification for better performance
+        is_valid = self.verify_chain(use_cache=True)
         return {
             'chain_length': len(self.chain),
-            'is_valid': self.verify_chain(),
+            'is_valid': is_valid,
             'latest_hash': self.get_latest_block().hash,
-            'difficulty': self.difficulty
+            'difficulty': self.difficulty,
+            'genesis_hash': self.chain[0].hash if self.chain else None,
+            'last_verified': self._last_verify_time.isoformat() if self._last_verify_time else None
         }
 
 

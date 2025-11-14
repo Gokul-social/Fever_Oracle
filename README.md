@@ -217,6 +217,11 @@ Kafka is configured in `docker-compose.yml`:
 - `GET /api/alerts?severity=high` - System alerts
 - `GET /api/dashboard/metrics` - Dashboard metrics
 
+### Kafka & Model
+- `GET /api/kafka/stats` - Kafka statistics and throughput
+- `GET /api/kafka/latest-data?topics=wastewater,pharmacy` - Latest Kafka messages
+- `POST /api/model/predict` - Run ML prediction on Kafka data
+
 ### Blockchain & Security
 - `GET /api/blockchain/info` - Get blockchain information and status
 - `POST /api/blockchain/audit` - Add audit log entry to blockchain

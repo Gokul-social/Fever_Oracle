@@ -14,6 +14,8 @@ interface KafkaStats {
   topics: TopicStats[];
   total_throughput: number;
   consumer_lag: number;
+  kafka_available?: boolean;
+  bootstrap_servers?: string;
 }
 
 export const KafkaMonitor = () => {
@@ -107,9 +109,16 @@ export const KafkaMonitor = () => {
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Total Throughput</span>
               </div>
-              <Badge variant="outline" className="text-lg font-semibold">
-                {stats.total_throughput} msg/min
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-lg font-semibold">
+                  {stats.total_throughput} msg/min
+                </Badge>
+                {stats.kafka_available === false && (
+                  <Badge variant="destructive" className="text-xs">
+                    Kafka Unavailable
+                  </Badge>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-foreground mb-3">Topic Statistics</h4>

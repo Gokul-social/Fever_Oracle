@@ -1,0 +1,63 @@
+{
+  "topics": [
+    {
+      "name": "fever-oracle-wastewater",
+      "description": "Wastewater viral load data",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 168
+    },
+    {
+      "name": "fever-oracle-pharmacy",
+      "description": "Pharmacy OTC sales data",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 168
+    },
+    {
+      "name": "fever-oracle-patients",
+      "description": "Patient records and demographics",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 720
+    },
+    {
+      "name": "fever-oracle-vitals",
+      "description": "Patient vital signs data",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 168
+    },
+    {
+      "name": "fever-oracle-alerts",
+      "description": "System alerts and notifications",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 720
+    },
+    {
+      "name": "fever-oracle-outbreak",
+      "description": "Outbreak predictions and forecasts",
+      "partitions": 3,
+      "replication_factor": 1,
+      "retention_hours": 720
+    }
+  ],
+  "consumer_groups": [
+    {
+      "name": "fever-oracle-monitor",
+      "description": "Monitoring and statistics consumer"
+    },
+    {
+      "name": "fever-oracle-consumers",
+      "description": "Data persistence consumer"
+    }
+  ],
+  "producer_config": {
+    "acks": "all",
+    "retries": 3,
+    "max_in_flight_requests_per_connection": 1,
+    "enable_idempotence": true
+  }
+}
+
