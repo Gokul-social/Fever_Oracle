@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Search, TrendingUp, AlertCircle, BarChart3, LineChart, Thermometer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,46 @@ import { Bar, BarChart, Line, LineChart as RechartsLineChart, XAxis, YAxis, Cart
 import { patientRiskData, riskDistribution, featureImportance } from "@/lib/mockData";
 
 const PatientRisk = () => {
-  const patients = patientRiskData;
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter patients based on search query
+  const filteredPatients = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return patientRiskData;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return patientRiskData.filter((patient) => {
+      // Search by ID
+      if (patient.id.toLowerCase().includes(query)) return true;
+      
+      // Search by name
+      if (patient.name.toLowerCase().includes(query)) return true;
+      
+      // Search by risk level
+      if (patient.riskLevel.toLowerCase().includes(query)) return true;
+      
+      // Search by risk score
+      if (patient.riskScore.toString().includes(query)) return true;
+      
+      // Search by age
+      if (patient.age.toString().includes(query)) return true;
+      
+      // Search by temperature
+      if (patient.lastTemperature.toString().includes(query)) return true;
+      
+      // Search in risk factors
+      if (patient.factors.some(factor => factor.toLowerCase().includes(query))) return true;
+      
+      // Search in comorbidities
+      if (patient.comorbidities.some(comorbidity => comorbidity.toLowerCase().includes(query))) return true;
+      
+      // Search in symptoms
+      if (patient.symptoms.some(symptom => symptom.toLowerCase().includes(query))) return true;
+      
+      return false;
+    });
+  }, [searchQuery]);
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -41,16 +81,31 @@ const PatientRisk = () => {
     <div className="relative">
     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
     <Input
-    placeholder="Search patients by ID, name, or risk factors..."
+    placeholder="Search patients by ID, name, risk factors, symptoms, or comorbidities..."
     className="pl-10"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
     />
     </div>
+    {searchQuery && (
+      <div className="mt-3 text-sm text-muted-foreground">
+        Found {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''} matching "{searchQuery}"
+      </div>
+    )}
     </CardContent>
     </Card>
 
     {/* Patient List */}
+    {filteredPatients.length === 0 ? (
+      <Card className="shadow-card">
+        <CardContent className="pt-6 pb-6 text-center">
+          <p className="text-muted-foreground">No patients found matching "{searchQuery}"</p>
+          <p className="text-sm text-muted-foreground mt-2">Try searching by ID, name, risk level, symptoms, or comorbidities</p>
+        </CardContent>
+      </Card>
+    ) : (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    {patients.map((patient) => (
+    {filteredPatients.map((patient) => (
       <Card key={patient.id} className="shadow-card hover:shadow-elevated transition-all cursor-pointer">
       <CardHeader>
       <div className="flex items-center justify-between">
@@ -226,6 +281,7 @@ const PatientRisk = () => {
       </Card>
     ))}
     </div>
+    )}
 
     {/* Risk Distribution */}
     <Card className="shadow-card">
@@ -299,9 +355,9 @@ const PatientRisk = () => {
     <ChartContainer config={{
       riskScore: { label: "Risk Score", color: "hsl(var(--chart-1))" }
     }} className="h-[300px]">
-    <RechartsLineChart data={patients[0]?.trend?.map((d, i) => {
+    <RechartsLineChart data={filteredPatients[0]?.trend?.map((d, i) => {
       const dataPoint: Record<string, string | number> = { date: d.date };
-      patients.slice(0, 4).forEach((p) => {
+      filteredPatients.slice(0, 4).forEach((p) => {
         dataPoint[p.name] = p.trend[i]?.value || 0;
       });
       return dataPoint;
@@ -314,7 +370,7 @@ const PatientRisk = () => {
     />
     <YAxis domain={[0, 100]} className="text-xs" />
     <ChartTooltip content={<ChartTooltipContent />} />
-    {patients.slice(0, 4).map((patient, index) => (
+    {filteredPatients.slice(0, 4).map((patient, index) => (
       <Line
       key={patient.id}
       type="monotone"
