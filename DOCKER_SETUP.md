@@ -1,129 +1,129 @@
-# Docker Setup Instructions
+# Docker Setup Guide
 
-## Important: Working Directory
+## Quick Start
 
-If you're using a Git worktree, make sure to run `docker-compose` commands from the **worktree directory**, not the main git directory.
+1. **Build and start all services:**
+   ```bash
+   docker-compose up -d --build
+   ```
 
-### Correct Location
-```bash
-cd /home/dijo404/.cursor/worktrees/Fever_Oracle/nEip0
-docker-compose up -d
-```
+2. **Check service status:**
+   ```bash
+   docker-compose ps
+   ```
 
-### Wrong Location (will fail)
-```bash
-cd /home/dijo404/git/Fever_Oracle  # ❌ Don't run from here
-docker-compose up -d
-```
+3. **View logs:**
+   ```bash
+   # All services
+   docker-compose logs -f
+   
+   # Specific service
+   docker-compose logs -f backend
+   docker-compose logs -f kafka-producer
+   ```
 
-## Building the Images
+4. **Access the application:**
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:5000
+   - Kafka Monitor: http://localhost:8080/kafka-monitor
 
-### Build all services
-```bash
-docker-compose build
-```
+## Services
 
-### Build specific service
-```bash
-docker-compose build frontend
-docker-compose build backend
-```
+### Backend
+- **Port**: 5000
+- **Health Check**: http://localhost:5000/api/health
+- **Dependencies**: PostgreSQL, Kafka
 
-### Build without cache (if having issues)
-```bash
-docker-compose build --no-cache
-```
+### Frontend
+- **Port**: 8080
+- **Dependencies**: Backend
 
-## Running the Services
+### PostgreSQL
+- **Port**: 5432
+- **Database**: fever_oracle
+- **User**: fever_user
+- **Password**: fever_password
 
-### Start all services
-```bash
-docker-compose up -d
-```
+### Zookeeper
+- **Port**: 2181
+- **Dependencies**: None
 
-### View logs
-```bash
-# All services
-docker-compose logs -f
+### Kafka
+- **Ports**: 9092 (external), 9093 (internal)
+- **Dependencies**: Zookeeper
 
-# Specific service
-docker-compose logs -f frontend
-docker-compose logs -f backend
-```
-
-### Stop services
-```bash
-docker-compose down
-```
-
-### Stop and remove volumes
-```bash
-docker-compose down -v
-```
+### Kafka Producer
+- **Dependencies**: Kafka, Backend
+- **Function**: Generates mock data and publishes to Kafka topics
 
 ## Troubleshooting
 
-### Frontend Build Issues
+### Services won't start
+```bash
+# Check logs
+docker-compose logs
 
-If you get `npm ci` errors:
+# Restart specific service
+docker-compose restart backend
 
-1. **Check you're in the right directory:**
-   ```bash
-   pwd
-   # Should be: /home/dijo404/.cursor/worktrees/Fever_Oracle/nEip0
-   ```
+# Rebuild and restart
+docker-compose up -d --build --force-recreate backend
+```
 
-2. **Verify package-lock.json exists:**
-   ```bash
-   ls -la frontend/package-lock.json
-   ```
+### Kafka connection issues
+```bash
+# Check Kafka is healthy
+docker-compose exec kafka kafka-broker-api-versions --bootstrap-server localhost:9093
 
-3. **Rebuild without cache:**
-   ```bash
-   docker-compose build --no-cache frontend
-   ```
+# Check topics
+docker-compose exec kafka kafka-topics --list --bootstrap-server localhost:9093
+```
 
-4. **Check Docker build context:**
-   The docker-compose.yml uses `context: ./frontend`, so make sure you're running from the project root.
+### Backend can't connect to Kafka
+- Ensure Kafka health check passes
+- Check KAFKA_BOOTSTRAP_SERVERS environment variable
+- Verify network connectivity: `docker-compose exec backend ping kafka`
 
-### Backend Build Issues
+### Frontend can't connect to backend
+- Check backend is healthy: `curl http://localhost:5000/api/health`
+- Verify VITE_API_URL environment variable
+- Check browser console for CORS errors
 
-1. **Check Python dependencies:**
-   ```bash
-   ls -la backend/requirements.txt
-   ```
+### Reset everything
+```bash
+# Stop and remove all containers, networks, and volumes
+docker-compose down -v
 
-2. **Rebuild backend:**
-   ```bash
-   docker-compose build --no-cache backend
-   ```
+# Rebuild and start
+docker-compose up -d --build
+```
 
-### Port Conflicts
+## Development Mode
 
-If ports 5000, 8080, or 5432 are already in use:
+For development with hot-reload:
 
-1. **Modify docker-compose.yml:**
-   ```yaml
-   ports:
-     - "5001:5000"  # Change host port
-   ```
+1. Services use volume mounts for code
+2. Changes to code are reflected immediately
+3. Use `docker-compose logs -f` to see changes
 
-2. **Or stop conflicting services:**
-   ```bash
-   # Find process using port
-   lsof -i :5000
-   # Kill it
-   kill <PID>
-   ```
+## Production Considerations
 
-## Development Tips
+For production deployment:
 
-- Use volumes for live code reloading (already configured)
-- Check logs frequently: `docker-compose logs -f`
-- Rebuild after dependency changes: `docker-compose build`
-- Use `docker-compose exec` to run commands in containers:
-  ```bash
-  docker-compose exec frontend npm install
-  docker-compose exec backend python app.py
-  ```
+1. Remove volume mounts for code
+2. Use gunicorn instead of Flask dev server
+3. Set proper environment variables
+4. Use secrets management
+5. Enable SSL/TLS
+6. Configure proper logging
+7. Set resource limits
 
+## Environment Variables
+
+Key environment variables:
+
+- `FLASK_ENV`: development or production
+- `PORT`: Backend port (default: 5000)
+- `KAFKA_BOOTSTRAP_SERVERS`: Kafka connection string
+- `VITE_API_URL`: Backend API URL for frontend
+- `POSTGRES_*`: Database configuration

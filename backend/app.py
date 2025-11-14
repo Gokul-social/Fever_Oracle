@@ -330,6 +330,11 @@ if __name__ == '__main__':
     # Ensure data directory exists
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     
+    # Ensure config directory exists
+    config_dir = Path(__file__).parent / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug)
 

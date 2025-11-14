@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy scripts
 COPY kafka_data_producer.py .
 
-# Run producer
-CMD ["python", "kafka_data_producer.py", "--topic", "all", "--bootstrap-servers", "kafka:9093"]
+# Create data directory if it doesn't exist
+RUN mkdir -p /app/data
+
+# Run producer with retry logic
+CMD ["python", "-u", "kafka_data_producer.py", "--topic", "all", "--bootstrap-servers", "kafka:9093", "--interval", "30"]
 

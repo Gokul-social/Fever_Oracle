@@ -1,0 +1,21 @@
+# Example override file for local development
+# Copy this to docker-compose.override.yml and customize as needed
+
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - FLASK_ENV=development
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+
+  frontend:
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+

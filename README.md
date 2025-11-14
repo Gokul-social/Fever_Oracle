@@ -371,17 +371,56 @@ npm test
 - **data/**: Demo and sample data files
 - **docs/**: Documentation including architecture details
 
+## Docker Deployment
+
+### Quick Start with Docker Compose
+
+1. **Start all services:**
+   ```bash
+   docker-compose up -d --build
+   ```
+
+2. **Check service status:**
+   ```bash
+   docker-compose ps
+   ```
+
+3. **View logs:**
+   ```bash
+   docker-compose logs -f
+   ```
+
+4. **Access the application:**
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:5000
+   - Kafka Monitor: http://localhost:8080/kafka-monitor
+
+5. **Stop services:**
+   ```bash
+   docker-compose down
+   ```
+
+**Note**: The system works in mock mode even without Kafka. If Kafka services fail to start, the backend will automatically use mock data.
+
+For detailed Docker setup instructions, see [DOCKER_SETUP.md](DOCKER_SETUP.md).
+
 ## Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (optional for Docker):
 
 ```env
 # Backend
 FLASK_ENV=development
 PORT=5000
+KAFKA_BOOTSTRAP_SERVERS=kafka:9093
 
 # Frontend
 VITE_API_URL=http://localhost:5000
+
+# Database
+POSTGRES_DB=fever_oracle
+POSTGRES_USER=fever_user
+POSTGRES_PASSWORD=fever_password
 ```
 
 ## Contributing
