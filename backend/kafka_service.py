@@ -37,7 +37,11 @@ def load_kafka_config():
             with open(KAFKA_CONFIG_FILE, 'r') as f:
                 return json.load(f)
     except Exception as e:
-        print(f"Warning: Could not load Kafka config: {e}")
+        try:
+            from utils.logger import logger
+            logger.warning("Could not load Kafka config", extra={"error": str(e)})
+        except:
+            pass
     return {
         "topics": [
             {"name": "fever-oracle-wastewater"},
@@ -92,7 +96,11 @@ def calculate_throughput():
 def start_kafka_monitor():
     """Start monitoring Kafka topics"""
     if not KAFKA_AVAILABLE:
-        print("Warning: Kafka not available, monitor not started")
+        try:
+            from utils.logger import logger
+            logger.warning("Kafka not available, monitor not started")
+        except:
+            pass
         return
     
     try:
@@ -138,7 +146,11 @@ def start_kafka_monitor():
                     
                     calculate_throughput()
             except Exception as e:
-                print(f"Error in Kafka monitor: {e}")
+                try:
+                    from utils.logger import logger
+                    logger.error("Error in Kafka monitor", extra={"error": str(e)}, exc_info=True)
+                except:
+                    pass
             finally:
                 try:
                     consumer.close()
@@ -147,9 +159,18 @@ def start_kafka_monitor():
         
         thread = threading.Thread(target=consume, daemon=True)
         thread.start()
-        print("Kafka monitor started")
+        try:
+            from utils.logger import logger
+            logger.info("Kafka monitor started")
+        except:
+            pass
     except Exception as e:
-        print(f"Warning: Could not start Kafka monitor: {e}")
+        # Logger will be imported if needed
+        try:
+            from utils.logger import logger
+            logger.warning("Could not start Kafka monitor", extra={"error": str(e)})
+        except:
+            pass  # Fallback if logger not available
 
 @kafka_bp.route('/api/kafka/stats', methods=['GET'])
 def get_kafka_stats():
@@ -385,5 +406,9 @@ def _get_mock_kafka_data():
 try:
     start_kafka_monitor()
 except Exception as e:
-    print(f"Warning: Could not start Kafka monitor: {e}")
+    try:
+        from utils.logger import logger
+        logger.warning("Could not start Kafka monitor", extra={"error": str(e)})
+    except:
+        pass
 

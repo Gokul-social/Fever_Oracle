@@ -68,10 +68,14 @@ class BlockchainClient {
     } catch (error) {
       // Handle network errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error(`Blockchain API request failed: Network error - ${endpoint}`, error);
+        if (import.meta.env.DEV) {
+          console.error(`Blockchain API request failed: Network error - ${endpoint}`, error);
+        }
         throw new Error('Network error: Unable to connect to blockchain service. Please check if the backend is running.');
       }
-      console.error(`Blockchain API request failed: ${endpoint}`, error);
+      if (import.meta.env.DEV) {
+        console.error(`Blockchain API request failed: ${endpoint}`, error);
+      }
       throw error;
     }
   }

@@ -70,7 +70,9 @@ export const ModelPredictions = () => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to run prediction';
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Prediction error:', err);
+      if (import.meta.env.DEV) {
+        console.error('Prediction error:', err);
+      }
     } finally {
       setIsLoading(false);
     }

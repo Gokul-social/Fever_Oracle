@@ -144,7 +144,11 @@ class Blockchain:
             self._cached_length = current_length
             return True
         except Exception as e:
-            print(f"Error verifying chain: {e}")
+            try:
+                from utils.logger import logger
+                logger.error("Error verifying chain", extra={"error": str(e)}, exc_info=True)
+            except:
+                pass  # Fallback if logger not available
             self._cache_valid = False
             return False
     

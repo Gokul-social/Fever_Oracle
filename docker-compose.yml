@@ -10,6 +10,7 @@ services:
       - FLASK_ENV=development
       - PORT=5000
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+      - ALLOWED_ORIGINS=http://localhost:8080,http://localhost:7000
     volumes:
       - ./backend:/app
       - ./data:/app/data
@@ -27,6 +28,14 @@ services:
       start_period: 40s
     networks:
       - fever-oracle-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   frontend:
     build:

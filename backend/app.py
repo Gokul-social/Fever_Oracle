@@ -5,37 +5,93 @@ Flask application for handling patient data, outbreak predictions, and alerts
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_compress import Compress
 from datetime import datetime, timedelta
 import json
 import os
+import signal
+import sys
 from pathlib import Path
 from functools import wraps
 from blockchain_service import blockchain_bp
 from models.blockchain import blockchain
 from kafka_service import kafka_bp
 from models.mock_model import outbreak_predictor
+from utils.logger import logger
+from utils.security import add_security_headers, validate_json_content_type, sanitize_input
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for frontend
+app.config['JSON_SORT_KEYS'] = False
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+
+# CORS configuration
+CORS(app, resources={
+    r"/api/*": {
+        "origins": os.getenv("ALLOWED_ORIGINS", "*").split(","),
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-User-ID"]
+    },
+    r"/admin/*": {
+        "origins": os.getenv("ALLOWED_ORIGINS", "*").split(","),
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
+# Rate limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["1000 per hour", "100 per minute"],
+    storage_uri="memory://"
+)
+
+# Compression
+Compress(app)
+
+# Graceful shutdown handler
+shutdown_flag = False
+
+def signal_handler(sig, frame):
+    """Handle graceful shutdown"""
+    global shutdown_flag
+    logger.info("Shutdown signal received, gracefully shutting down...")
+    shutdown_flag = True
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 # Add JSON error handler for API routes
 @app.errorhandler(404)
 def not_found(error):
-    if request.path.startswith('/api/'):
+    logger.warning("Endpoint not found", extra={"path": request.path})
+    if request.path.startswith('/api/') or request.path.startswith('/admin/'):
         return jsonify({"error": "Endpoint not found", "path": request.path}), 404
     return jsonify({"error": "Endpoint not found"}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    if request.path.startswith('/api/'):
+    logger.error("Internal server error", extra={"error": str(error), "path": request.path}, exc_info=True)
+    if request.path.startswith('/api/') or request.path.startswith('/admin/'):
         return jsonify({"error": "Internal server error"}), 500
     return jsonify({"error": "Internal server error"}), 500
 
-# Ensure JSON responses for all API routes
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    logger.warning("Rate limit exceeded", extra={"remote_addr": request.remote_addr})
+    return jsonify({"error": "Rate limit exceeded", "message": str(e.description)}), 429
+
+# Ensure JSON responses for all API routes and add security headers
 @app.after_request
 def after_request(response):
+    # Add security headers
+    response = add_security_headers(response)
+    
     # Force JSON content-type for all API routes
-    if request.path.startswith('/api/'):
+    if request.path.startswith('/api/') or request.path.startswith('/admin/'):
         # Always set JSON content-type for API routes
         if response.content_type and 'application/json' not in response.content_type:
             try:
@@ -49,6 +105,15 @@ def after_request(response):
                     "status_code": response.status_code
                 })
         response.content_type = 'application/json'
+    
+    # Log request
+    logger.info("Request processed", extra={
+        "method": request.method,
+        "path": request.path,
+        "status_code": response.status_code,
+        "remote_addr": request.remote_addr
+    })
+    
     return response
 
 # Register blueprints
@@ -87,6 +152,7 @@ def health_check():
         }), 200  # Return 200 but with degraded status
 
 @app.route('/api/patients', methods=['GET'])
+@limiter.limit("60 per minute")
 def get_patients():
     """Get all patients with risk assessment - uses mock data if file not found"""
     try:
@@ -164,7 +230,7 @@ def get_patient(patient_id):
                 metadata={'patient_id': patient_id}
             )
         except Exception as e:
-            print(f"Warning: Could not log to blockchain: {e}")
+            logger.warning("Could not log to blockchain", extra={"error": str(e)})
         
         patients_file = DATA_DIR / "patients_demo.jsonl"
         if patients_file.exists():
@@ -457,6 +523,8 @@ def get_admin_alerts():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/model/predict', methods=['POST'])
+@limiter.limit("30 per minute")
+@validate_json_content_type
 def model_predict():
     """Run model prediction on latest Kafka data with mock fallback"""
     try:
@@ -492,12 +560,11 @@ def model_predict():
                 metadata=prediction
             )
         except Exception as e:
-            print(f"Warning: Could not log to blockchain: {e}")
+            logger.warning("Could not log to blockchain", extra={"error": str(e)})
         
         return jsonify(prediction)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error("Model prediction error", extra={"error": str(e)}, exc_info=True)
         # Return mock prediction on error using model
         try:
             prediction = outbreak_predictor.predict([], [])

@@ -34,7 +34,9 @@ const Dashboard = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to fetch blockchain info";
       setError(errorMessage);
-      console.error("Error fetching blockchain info:", err);
+      if (import.meta.env.DEV) {
+        console.error("Error fetching blockchain info:", err);
+      }
       // Only show toast for non-network errors (network errors are expected if backend is down)
       if (!errorMessage.includes('Network error')) {
         toast.error("Failed to load blockchain status");

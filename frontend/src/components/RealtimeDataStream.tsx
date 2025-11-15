@@ -62,7 +62,9 @@ export const RealtimeDataStream = () => {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load real-time data');
         setIsActive(false);
-        console.error('Failed to fetch real-time data:', err);
+        if (import.meta.env.DEV) {
+          console.error('Failed to fetch real-time data:', err);
+        }
       } finally {
         setIsLoading(false);
       }

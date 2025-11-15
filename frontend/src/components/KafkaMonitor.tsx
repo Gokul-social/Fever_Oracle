@@ -45,7 +45,9 @@ export const KafkaMonitor = () => {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load Kafka stats';
         setError(errorMessage);
-        console.error('Failed to fetch Kafka stats:', err);
+        if (import.meta.env.DEV) {
+          console.error('Failed to fetch Kafka stats:', err);
+        }
       } finally {
         setIsLoading(false);
       }
