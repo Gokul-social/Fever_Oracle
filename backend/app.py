@@ -379,6 +379,83 @@ def get_dashboard_metrics():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Admin Portal API Endpoints
+@app.route('/admin/stats', methods=['GET'])
+def get_admin_stats():
+    """Get admin dashboard statistics"""
+    try:
+        # Mock data - replace with actual data source
+        import random
+        return jsonify({
+            "hospitals": 12,
+            "active_patients": 341,
+            "predicted_hotspots": 8,
+            "alerts_24h": 19
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/hospitals', methods=['GET'])
+def get_admin_hospitals():
+    """Get hospitals list for admin portal"""
+    try:
+        # Mock data - replace with actual data source
+        hospitals = [
+            {"hospital_name": "City General Hospital", "city": "New York", "active_cases": 45, "high_risk_cases": 12},
+            {"hospital_name": "Metro Medical Center", "city": "Los Angeles", "active_cases": 38, "high_risk_cases": 9},
+            {"hospital_name": "Regional Health Center", "city": "Chicago", "active_cases": 52, "high_risk_cases": 15},
+            {"hospital_name": "Community Hospital", "city": "Houston", "active_cases": 29, "high_risk_cases": 7},
+            {"hospital_name": "University Medical", "city": "Phoenix", "active_cases": 41, "high_risk_cases": 11},
+        ]
+        return jsonify({"hospitals": hospitals, "count": len(hospitals)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/hotspots', methods=['GET'])
+def get_admin_hotspots():
+    """Get predicted hotspots for admin portal"""
+    try:
+        # Mock data - replace with actual data source
+        hotspots = [
+            {"area": "Downtown District", "predicted_risk": "High", "lead_time_days": 3},
+            {"area": "Northside Suburbs", "predicted_risk": "Medium", "lead_time_days": 7},
+            {"area": "East End", "predicted_risk": "High", "lead_time_days": 5},
+            {"area": "West Quarter", "predicted_risk": "Low", "lead_time_days": 12},
+            {"area": "Central Plaza", "predicted_risk": "Medium", "lead_time_days": 8},
+        ]
+        return jsonify({"hotspots": hotspots, "count": len(hotspots)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/alerts', methods=['GET'])
+def get_admin_alerts():
+    """Get alerts for admin portal"""
+    try:
+        # Mock data - replace with actual data source
+        alerts = [
+            {
+                "alert_id": "ALT-001",
+                "timestamp": datetime.now().isoformat(),
+                "description": "Elevated fever cases detected in Downtown District",
+                "similarity_match_score": 0.94
+            },
+            {
+                "alert_id": "ALT-002",
+                "timestamp": (datetime.now() - timedelta(hours=1)).isoformat(),
+                "description": "Wastewater viral load threshold exceeded",
+                "similarity_match_score": 0.87
+            },
+            {
+                "alert_id": "ALT-003",
+                "timestamp": (datetime.now() - timedelta(hours=2)).isoformat(),
+                "description": "Pharmacy OTC sales spike detected",
+                "similarity_match_score": 0.82
+            },
+        ]
+        return jsonify({"alerts": alerts, "count": len(alerts)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/model/predict', methods=['POST'])
 def model_predict():
     """Run model prediction on latest Kafka data with mock fallback"""

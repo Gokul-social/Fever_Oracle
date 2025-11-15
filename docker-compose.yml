@@ -115,6 +115,25 @@ services:
     command: python -u kafka_data_producer.py --topic all --bootstrap-servers kafka:9093 --interval 30
     restart: unless-stopped
 
+  admin-portal:
+    build:
+      context: ./admin-portal
+      dockerfile: Dockerfile
+    container_name: fever-oracle-admin-portal
+    ports:
+      - "7000:7000"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./admin-portal:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - fever-oracle-network
+
 networks:
   fever-oracle-network:
     driver: bridge
