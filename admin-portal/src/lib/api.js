@@ -24,24 +24,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Check if it's a network error (backend not running)
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || !error.response) {
+      // Return a special error that can be handled gracefully
+      return Promise.reject({
+        message: 'Backend not available. Using mock data.',
+        status: 0,
+        isNetworkError: true,
+      })
+    }
+    
     if (error.response) {
       // Server responded with error
       return Promise.reject({
         message: error.response.data?.error || error.response.data?.message || 'An error occurred',
         status: error.response.status,
         data: error.response.data,
-      })
-    } else if (error.request) {
-      // Request made but no response
-      return Promise.reject({
-        message: 'Network error. Please check your connection.',
-        status: 0,
+        isNetworkError: false,
       })
     } else {
       // Something else happened
       return Promise.reject({
         message: error.message || 'An unexpected error occurred',
         status: 0,
+        isNetworkError: true,
       })
     }
   }
