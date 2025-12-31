@@ -101,6 +101,59 @@ fever-oracle/
 └── docker-compose.yml        # Docker orchestration
 ```
 
+## Flow Diagram 
+```mermaid
+graph TD
+    subgraph "Data Sources & Ingestion"
+        A1[Wastewater Viral Data] --> S1[Scripts / Producers]
+        A2[Pharmacy OTC Sales] --> S1
+        A3[Patient Vitals/Records] --> S1
+    end
+
+    subgraph "Real-time Messaging Pipeline (Kafka)"
+        S1 -- Publish --> K1{Kafka Broker}
+        K1 --> T1[fever-oracle-wastewater]
+        K1 --> T2[fever-oracle-pharmacy]
+        K1 --> T3[fever-oracle-vitals]
+        K1 --> T4[fever-oracle-outbreak]
+    end
+
+    subgraph "Processing & Logic Layer"
+        B1[Flask Backend API - Port 5000]
+        ML1[Outbreak Prediction Models]
+        ML2[Digital Twin Models]
+        
+        T1 & T2 & T3 & T4 -- Consume --> B1
+        B1 <--> ML1
+        B1 <--> ML2
+        
+        %% Mock Fallback Logic
+        MOCK[Mock Data Service] -.->|Fallback| B1
+    end
+
+    subgraph "Storage & Security"
+        B1 --> DB[(PostgreSQL)]
+        B1 -- "Audit Logging / Integrity" --> BC{{Blockchain Service}}
+        BC --> ZK[Zero-Knowledge Proofs]
+        BC --> AL[Immutable Audit Logs]
+    end
+
+    subgraph "Presentation Layer"
+        B1 <--> PP[Public Portal - Port 8080]
+        B1 <--> AP[Admin Portal - Port 7000]
+        
+        PP --> Dashboard[Real-time Visuals]
+        PP --> KM[Kafka Monitor]
+        AP --> AM[Hospital & Hotspot Management]
+    end
+
+    %% Styling
+    style BC fill:#f9f,stroke:#333,stroke-width:2px
+    style K1 fill:#fff4dd,stroke:#d4a017,stroke-width:2px
+    style B1 fill:#d1e8ff,stroke:#0056b3,stroke-width:2px
+    style MOCK stroke-dasharray: 5 5
+```
+
 ## Technologies Used
 
 ### Frontend
